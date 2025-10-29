@@ -16,7 +16,13 @@ Steps:
   A. Virtual machine method
     - Create/use a virtual machine with the minimum supported ubuntu version
     - install the required build dependencies:
-      * sudo apt-get install build-essential dh-make debhelper devscripts fakeroot intltool libgtk2.0-dev libglade2-dev libgnomevfs2-dev libgnome2-dev libgtop2-dev
+      * sudo apt-get install build-essential dh-make debhelper devscripts fakeroot intltool libgtk-4-dev libglib2.0-dev libgtop2-dev
+    - NOTE: GTK 4 version uses GSettings for preference storage (replacing GConf). 
+      During package build, the GSettings schema file (org.netactview.gschema.xml) 
+      must be compiled using glib-compile-schemas. This is handled automatically by 
+      the GLIB_GSETTINGS autotools macro in the build system, but packagers should 
+      verify that the compiled schema is included in the .deb package and installed 
+      to /usr/share/glib-2.0/schemas/.
     - update the VM ubuntu system
     - Run from a clean source directory that contains the debian folder:
       * fakeroot debian/rules binary
