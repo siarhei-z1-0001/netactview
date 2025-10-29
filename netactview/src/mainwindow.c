@@ -1109,7 +1109,7 @@ static void clear_filter ()
 	GtkEntry *filter_entry;
 	filter_entry = GTK_ENTRY(gtk_builder_get_object(Builder, "txtFilter"));
 	
-	gtk_editable_set_text(filter_entry, "");
+	gtk_editable_set_text(GTK_EDITABLE(filter_entry), "");
 }
 
 static void update_columns_initial_view_order ()
@@ -1371,7 +1371,7 @@ static void set_menu_preferences ()
 	gtk_widget_set_sensitive(gtk_builder_get_object(Builder, "menuAdminMode"), 
 							 (gboolean)(geteuid()!=0));
 #else
-	gtk_widget_hide(gtk_builder_get_object(Builder, "menuAdminMode"));
+	gtk_widget_hide(GTK_WIDGET(gtk_builder_get_object(Builder, "menuAdminMode")));
 #endif
 	
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(gtk_builder_get_object(Builder, "menuFilter")),
@@ -1384,7 +1384,7 @@ static void set_menu_preferences ()
 	{
 		GtkEntry *filter_entry = GTK_ENTRY(gtk_builder_get_object(Builder, "txtFilter"));
 		char *filter_data = g_strdup(Mwd.filter->str); /*need this as filter is modified by text changed*/
-		gtk_editable_set_text(filter_entry, filter_data);
+		gtk_editable_set_text(GTK_EDITABLE(filter_entry), filter_data);
 		g_free(filter_data);
 	}
 }
@@ -1843,7 +1843,7 @@ static void destroy (GtkWidget *widget,
 static void on_menuAbout_activate (GtkWidget *menuitem, gpointer user_data)
 {
 	GtkWidget *aboutdialog;
-	aboutdialog = gtk_builder_get_object(Builder, "aboutdialog");
+	aboutdialog = GTK_WIDGET(gtk_builder_get_object(Builder, "aboutdialog"));
 	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(aboutdialog), VERSION);
 	gtk_about_dialog_set_name(GTK_ABOUT_DIALOG(aboutdialog), 
 							  Q_("about.program_name|Net Activity Viewer"));
@@ -1859,13 +1859,22 @@ static void on_aboutdialog_close (GtkDialog *dialog, gpointer user_data)
 static void on_menuWiki_activate (GtkWidget *menuitem, gpointer user_data)
 {
 	const char *wikiURL = "http://netactview.sourceforge.net/wiki/";
+	GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(Builder, "window"));
 	
-	// GTK 4: gtk_show_uri no longer returns errors directly
-	// Simply launch the URI - errors will be handled by the system
-	gtk_show_uri(NULL, wikiURL, GDK_CURRENT_TIME);
+	/* GTK 4: Use gtk_show_uri with proper parent window for modal error handling
+	 * gtk_show_uri doesn't return errors synchronously in GTK 4,
+	 * so we need to use gtk_uri_launcher for better error handling */
 	
-	// TODO: For better error handling in GTK 4, consider using gtk_show_uri_full
-	// with a callback to check for errors asynchronously
+	#if GTK_CHECK_VERSION(4, 10, 0)
+	/* GTK 4.10+: Use GtkUriLauncher for modern async URI handling */
+	GtkUriLauncher *launcher = gtk_uri_launcher_new(wikiURL);
+	/* Launch asynchronously - errors handled by system */
+	gtk_uri_launcher_launch(launcher, GTK_WINDOW(window), NULL, NULL, NULL);
+	g_object_unref(launcher);
+	#else
+	/* GTK 4.0-4.9: Use gtk_show_uri as fallback */
+	gtk_show_uri(GTK_WINDOW(window), wikiURL, GDK_CURRENT_TIME);
+	#endif
 }
 
 static void on_tbtnSave_clicked (GtkWidget *button, gpointer userdata)
@@ -1895,7 +1904,7 @@ static void on_menuSaveAs_activate (GtkWidget *menuItem, gpointer userdata)
 
 static void on_menuQuit_activate (GtkWidget *menuItem, gpointer userdata)
 {
-	GtkWidget *window = gtk_builder_get_object(Builder, "window");
+	GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(Builder, "window"));
 	gtk_widget_destroy(window);
 }
 
@@ -1931,9 +1940,9 @@ static void on_menuEdit_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	gboolean item_selected = (selected_items_number() > 0);
 	
-	gtk_widget_set_sensitive(gtk_builder_get_object(Builder, "menuCopy"), item_selected);
-	gtk_widget_set_sensitive(gtk_builder_get_object(Builder, "menuCopyAddress"), item_selected);
-	gtk_widget_set_sensitive(gtk_builder_get_object(Builder, "menuCopyHost"), item_selected);
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "menuCopy")), item_selected);
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "menuCopyAddress")), item_selected);
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "menuCopyHost")), item_selected);
 }
 
 static void on_menuCopyColumn_activate (GtkWidget *menuItem, gpointer userdata)
@@ -2032,7 +2041,7 @@ static void AddColumnToFilter(gboolean negate)
 		}
 	
 		char *newFilterText = PrintFilter(Mwd.filterTree);	
-		gtk_editable_set_text(filter_entry, newFilterText);
+		gtk_editable_set_text(GTK_EDITABLE(filter_entry), newFilterText);
 		
 		g_free(newFilterText);
 		free_str_list(str_list, str_list_count);
@@ -2118,7 +2127,7 @@ static void on_menuAutoRefresh0_064_toggled (GtkCheckButton *radiomenuitem, gpoi
 
 static void menuView_activate (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
-	gtk_widget_set_sensitive(gtk_builder_get_object(Builder, "menuViewDeletedConn"), 
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "menuViewDeletedConn")), 
 							 Mwd.view_unestablished_connections);
 }
 
@@ -2219,10 +2228,13 @@ static void show_popup_menu (int button, gboolean selecting, GtkTreeViewColumn *
 	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "popupFilterIn")), item_selected && (popup_column!=NULL));
 	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "popupFilterOut")), item_selected && (popup_column!=NULL));
 	
-	/* GTK 4: gtk_menu_popup removed, need to use GtkPopoverMenu */
-	/* TODO: Replace with gtk_popover_menu_new_from_model() and gtk_popover_popup() */
-	/* gtk_menu_popup(Mwd.mainPopup, NULL, NULL, NULL, NULL, button, 
-				   gtk_get_current_event_time()); */
+	/* GTK 4: Use GtkPopoverMenu popup method
+	 * The mainPopup should be a GtkPopoverMenu defined in the UI file
+	 * with parent set to the tree view widget */
+	if (Mwd.mainPopup != NULL && GTK_IS_POPOVER(Mwd.mainPopup))
+	{
+		gtk_popover_popup(GTK_POPOVER(Mwd.mainPopup));
+	}
 }
 
 static gboolean on_mainView_popup_menu (GtkWidget *widget, gpointer user_data)
@@ -2231,13 +2243,43 @@ static gboolean on_mainView_popup_menu (GtkWidget *widget, gpointer user_data)
 	return TRUE;
 }
 
-/* GTK 4: This function needs to be replaced with GtkGestureClick controller
- * For now, disabled to allow compilation. TODO: Implement with event controllers */
-static gboolean on_mainView_button_press_event (GtkWidget *widget, gpointer event, 
-										 gpointer user_data)
+/* GTK 4: Gesture click handler for right-click context menu on tree view */
+static void on_mainView_click_pressed (GtkGestureClick *gesture,
+                                        int n_press,
+                                        double x,
+                                        double y,
+                                        gpointer user_data)
 {
-	/* TODO: Implement with GtkGestureClick controller in GTK 4 */
-	return FALSE;
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+	gboolean item_already_selected = FALSE, selecting = FALSE;
+	
+	/* Only handle right-click (button 3) */
+	if (button == GDK_BUTTON_SECONDARY)
+	{
+		GtkTreePath *position_path;
+		GtkTreeViewColumn *popup_column = NULL;
+		
+		/* Get the path and column at the click position */
+		if (gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(widget), (int)x, (int)y,
+		                                  &position_path, &popup_column, NULL, NULL))
+		{
+			GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+			if (gtk_tree_selection_path_is_selected(selection, position_path))
+				item_already_selected = TRUE;
+			else
+				selecting = TRUE;
+			gtk_tree_path_free(position_path);
+		}
+		else
+			popup_column = NULL;
+		
+		show_popup_menu(button, selecting, popup_column);
+		
+		/* Stop event propagation if item was already selected */
+		if (item_already_selected)
+			gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+	}
 }
 
 static void set_sort_column (int columnindex, gboolean init)
@@ -2366,7 +2408,7 @@ static void on_filter_changed (GtkEditable *editable, gpointer user_data)
 		else
 			newStr = string_replace(Mwd.filter->str, "\n", " ");
 		g_string_assign(Mwd.filter, newStr);
-		gtk_editable_set_text(filter_entry, Mwd.filter->str);
+		gtk_editable_set_text(GTK_EDITABLE(filter_entry), Mwd.filter->str);
 		g_free(newStr);
 	}
 	
@@ -2398,22 +2440,19 @@ static void on_menuFilter_toggled (GtkCheckButton *checkmenuitem, gpointer userd
 
 }
 
-/* GTK 4: Window configuration events replaced with property notifications */
-gboolean on_window_configure_event (GtkWidget *widget, gpointer event, gpointer user_data)
+/* GTK 4: Window size change notification handler */
+static void on_window_size_changed (GtkWidget *widget, GParamSpec *pspec, gpointer user_data)
 {
-	/* TODO: Use g_signal_connect(window, "notify::default-width", ...) in GTK 4 */
 	int width, height;
 	gtk_window_get_default_size(GTK_WINDOW(widget), &width, &height);
 	Mwd.window_width = width;
 	Mwd.window_height = height;
-	return FALSE;
 }
 
-gboolean on_window_window_state_event (GtkWidget *widget, gpointer event, gpointer user_data)
-{	
-	/* TODO: Use g_signal_connect(window, "notify::maximized", ...) in GTK 4 */
+/* GTK 4: Window maximized state change notification handler */
+static void on_window_maximized_changed (GtkWidget *widget, GParamSpec *pspec, gpointer user_data)
+{
 	Mwd.window_maximized = gtk_window_is_maximized(GTK_WINDOW(widget));
-	return FALSE;
 }
 
 static void gconf_load ()
@@ -2443,9 +2482,17 @@ static void connect_signals (GtkWidget *window)
 	 * No explicit gtk_builder_connect_signals() call needed - function removed in GTK 4.
 	 */
 	
-	/* Connect additional window lifecycle signals */
+	/* Connect window lifecycle signals */
 	g_signal_connect(G_OBJECT (window), "close-request", G_CALLBACK (delete_event), NULL);
 	g_signal_connect(G_OBJECT (window), "destroy", G_CALLBACK (destroy), NULL);
+	
+	/* GTK 4: Connect window property change notifications for size and maximized state */
+	g_signal_connect(G_OBJECT (window), "notify::default-width", 
+	                 G_CALLBACK (on_window_size_changed), NULL);
+	g_signal_connect(G_OBJECT (window), "notify::default-height", 
+	                 G_CALLBACK (on_window_size_changed), NULL);
+	g_signal_connect(G_OBJECT (window), "notify::maximized", 
+	                 G_CALLBACK (on_window_maximized_changed), NULL);
 }
 
 
@@ -2516,6 +2563,12 @@ static void setup_view (GtkWidget *window)
 	main_view_selection = gtk_tree_view_get_selection(Mwd.main_view);
 	gtk_tree_selection_set_mode(main_view_selection, GTK_SELECTION_MULTIPLE);
 	
+	/* GTK 4: Set up event controller for right-click context menu */
+	GtkEventController *click_controller = GTK_EVENT_CONTROLLER(gtk_gesture_click_new());
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click_controller), GDK_BUTTON_SECONDARY);
+	g_signal_connect(click_controller, "pressed", G_CALLBACK(on_mainView_click_pressed), NULL);
+	gtk_widget_add_controller(GTK_WIDGET(Mwd.main_view), click_controller);
+	
 	set_sort_column(Mwd.current_sort_column, TRUE);
 	
 	gtk_tree_model_filter_set_visible_column(GTK_TREE_MODEL_FILTER(Mwd.main_store_filtered), MVC_VISIBLE);
@@ -2531,7 +2584,7 @@ static void setup_view (GtkWidget *window)
 
 static GtkLabel *add_status_bar_label (const char *text)
 {
-	GtkWidget* status_bar = gtk_builder_get_object(Builder, "mainstatusbar");
+	GtkWidget* status_bar = GTK_WIDGET(gtk_builder_get_object(Builder, "mainstatusbar"));
 	GtkFrame* label_frame;
 	GtkLabel* label;
 	PangoFontDescription *font_desc;
@@ -2588,7 +2641,7 @@ GtkWidget* main_window_create (void)
 	
 	set_main_window_data_defaults(&Mwd);
 	
-	window = gtk_builder_get_object(Builder, "window");
+	window = GTK_WIDGET(gtk_builder_get_object(Builder, "window"));
 	g_assert(window != NULL);
 	Mwd.mainPopup = GTK_WIDGET(gtk_builder_get_object(Builder, "mainPopup"));
 	
