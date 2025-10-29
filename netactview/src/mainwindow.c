@@ -150,11 +150,11 @@ typedef struct
 
 	GHashTable *ip_host_hash, *requested_ip_hash;
 	GThreadPool *host_loader_pool;
-	GMutex *host_hash_lock;
+	GMutex host_hash_lock;  /* Changed from pointer to stack-allocated for modern GLib */
 	
 	GThread *data_load_thread;
-	GMutex *loaded_conn_lock, *refresh_request_lock;
-	GCond *refresh_request_cond;
+	GMutex loaded_conn_lock, refresh_request_lock;  /* Changed from pointers to stack-allocated */
+	GCond refresh_request_cond;  /* Changed from pointer to stack-allocated */
 	gboolean refresh_requested;
 	NetConnection *latest_connections;
 	unsigned int nr_latest_connections;
@@ -290,7 +290,7 @@ static void host_loader_thread_func (gpointer data, gpointer user_data)
 		return;
 	}
 	
-	g_mutex_lock(Mwd.host_hash_lock);
+	g_mutex_lock(&Mwd.host_hash_lock);  /* Modern GLib: use address of stack-allocated mutex */
 	
 	/* just enforcing the limit, no cache management
 	 * normal usage patterns for a netactview instance are not more than a few hours long */
@@ -305,7 +305,7 @@ static void host_loader_thread_func (gpointer data, gpointer user_data)
 	g_hash_table_remove(Mwd.requested_ip_hash, ip); 
 	ip = NULL; /*it became invalid on the previous line*/
 	
-	g_mutex_unlock(Mwd.host_hash_lock);
+	g_mutex_unlock(&Mwd.host_hash_lock);  /* Modern GLib: use address of stack-allocated mutex */
 	
 	g_idle_add(&update_connections_hosts_on_idle, NULL);
 }
@@ -314,7 +314,7 @@ static void init_host_loader ()
 {
 	Mwd.ip_host_hash = g_hash_table_new_full(&g_str_hash, &g_str_equal, &g_free, &g_free);
 	Mwd.requested_ip_hash = g_hash_table_new_full(&g_str_hash, &g_str_equal, &g_free, NULL);
-	Mwd.host_hash_lock = g_mutex_new();
+	g_mutex_init(&Mwd.host_hash_lock);  /* Modern GLib: init instead of new */
 	
 	Mwd.host_loader_pool = g_thread_pool_new(&host_loader_thread_func, NULL, 5, TRUE, NULL);
 }
@@ -329,7 +329,7 @@ static void free_host_loader ()
 {	
 	g_hash_table_destroy(Mwd.ip_host_hash); Mwd.ip_host_hash = NULL;
 	g_hash_table_destroy(Mwd.requested_ip_hash); Mwd.requested_ip_hash = NULL;
-	g_mutex_free(Mwd.host_hash_lock); Mwd.host_hash_lock = NULL;
+	g_mutex_clear(&Mwd.host_hash_lock);  /* Modern GLib: clear instead of free */
 }
 
 #define MAX_HOST_REQUEST_QUEUE_LEN 100100
@@ -340,7 +340,7 @@ static char *get_host (const char *ip)
 	if (Mwd.exit_requested)
 		return NULL;
 	
-	g_mutex_lock(Mwd.host_hash_lock);
+	g_mutex_lock(&Mwd.host_hash_lock);  /* Modern GLib: use address of stack-allocated mutex */
 	
 	host_name = (char*)g_hash_table_lookup(Mwd.ip_host_hash, ip);
 	if (host_name == NULL && g_hash_table_lookup(Mwd.requested_ip_hash, ip) == NULL && 
@@ -351,7 +351,7 @@ static char *get_host (const char *ip)
 		g_thread_pool_push(Mwd.host_loader_pool, hash_ip, NULL);
 	}
 		
-	g_mutex_unlock(Mwd.host_hash_lock);
+	g_mutex_unlock(&Mwd.host_hash_lock);  /* Modern GLib: use address of stack-allocated mutex */
 	
 	return (host_name != NULL) ? g_strdup(host_name) : NULL;
 }
@@ -668,11 +668,11 @@ static gpointer connections_load_thread_func (gpointer data)
 		NetConnection *new_connections = NULL;
 		int nr_new_connections = 0;
 		
-		g_mutex_lock(Mwd.refresh_request_lock);
+		g_mutex_lock(&Mwd.refresh_request_lock);  /* Modern GLib: use address of stack-allocated mutex */
 		while (!Mwd.refresh_requested && !Mwd.exit_requested)
-			g_cond_wait(Mwd.refresh_request_cond, Mwd.refresh_request_lock);
+			g_cond_wait(&Mwd.refresh_request_cond, &Mwd.refresh_request_lock);  /* Modern GLib: use addresses */
 		Mwd.refresh_requested = FALSE;
-		g_mutex_unlock(Mwd.refresh_request_lock);
+		g_mutex_unlock(&Mwd.refresh_request_lock);  /* Modern GLib: use address of stack-allocated mutex */
 		
 		if (Mwd.exit_requested)
 			break;
@@ -680,14 +680,14 @@ static gpointer connections_load_thread_func (gpointer data)
 		new_connections = NULL;
 		nr_new_connections = get_net_connections(&new_connections);
 		
-		g_mutex_lock(Mwd.loaded_conn_lock);
+		g_mutex_lock(&Mwd.loaded_conn_lock);  /* Modern GLib: use address of stack-allocated mutex */
 		
 		if (Mwd.latest_connections != NULL)
 			free_net_connections(Mwd.latest_connections, Mwd.nr_latest_connections);
 		Mwd.latest_connections = new_connections;
 		Mwd.nr_latest_connections = nr_new_connections;
 		
-		g_mutex_unlock(Mwd.loaded_conn_lock);
+		g_mutex_unlock(&Mwd.loaded_conn_lock);  /* Modern GLib: use address of stack-allocated mutex */
 	
 		g_idle_add(&refresh_main_view_on_idle, NULL);
 	}
@@ -696,28 +696,28 @@ static gpointer connections_load_thread_func (gpointer data)
 
 static void init_connections_loader ()
 {
-	Mwd.refresh_request_lock = g_mutex_new();
-	Mwd.loaded_conn_lock = g_mutex_new();
-	Mwd.refresh_request_cond = g_cond_new();
+	g_mutex_init(&Mwd.refresh_request_lock);  /* Modern GLib: init instead of new */
+	g_mutex_init(&Mwd.loaded_conn_lock);      /* Modern GLib: init instead of new */
+	g_cond_init(&Mwd.refresh_request_cond);   /* Modern GLib: init instead of new */
 	
-	Mwd.data_load_thread = g_thread_create(&connections_load_thread_func, NULL,
-										   TRUE, NULL);
+	Mwd.data_load_thread = g_thread_new("connections_load_thread",  /* Modern GLib: g_thread_new instead of g_thread_create */
+	                                     (GThreadFunc)connections_load_thread_func, NULL);
 	g_assert(Mwd.data_load_thread != NULL);
 }
 
 static void stop_connections_loader ()
 {
 	Mwd.exit_requested = TRUE;
-	g_cond_signal(Mwd.refresh_request_cond);
+	g_cond_signal(&Mwd.refresh_request_cond);  /* Modern GLib: use address of stack-allocated cond */
 	g_thread_join(Mwd.data_load_thread);
 	Mwd.data_load_thread = NULL;
 }
 
 static void free_connections_loader ()
 {
-	g_mutex_free(Mwd.refresh_request_lock);
-	g_mutex_free(Mwd.loaded_conn_lock);
-	g_cond_free(Mwd.refresh_request_cond);
+	g_mutex_clear(&Mwd.refresh_request_lock);  /* Modern GLib: clear instead of free */
+	g_mutex_clear(&Mwd.loaded_conn_lock);      /* Modern GLib: clear instead of free */
+	g_cond_clear(&Mwd.refresh_request_cond);   /* Modern GLib: clear instead of free */
 	
 	if (Mwd.latest_connections != NULL)
 	{
@@ -736,12 +736,12 @@ static void refresh_main_view (void)
 	if (Mwd.show_closed_connections)
 		update_closed_connections();
 	
-	g_mutex_lock(Mwd.loaded_conn_lock);
+	g_mutex_lock(&Mwd.loaded_conn_lock);  /* Modern GLib: use address of stack-allocated mutex */
 	
 	net_connection_update_list_full(Mwd.connections, Mwd.latest_connections, 
 									Mwd.nr_latest_connections);
 	
-	g_mutex_unlock(Mwd.loaded_conn_lock);
+	g_mutex_unlock(&Mwd.loaded_conn_lock);  /* Modern GLib: use address of stack-allocated mutex */
 	
 	for(i=0; i<Mwd.connections->len; i++)
 	{
@@ -793,10 +793,10 @@ static gboolean refresh_main_view_on_idle (gpointer data)
 
 static void refresh_connections ()
 {
-	g_mutex_lock(Mwd.refresh_request_lock);
+	g_mutex_lock(&Mwd.refresh_request_lock);     /* Modern GLib: use address of stack-allocated mutex */
 	Mwd.refresh_requested = TRUE;
-	g_cond_signal(Mwd.refresh_request_cond);
-	g_mutex_unlock(Mwd.refresh_request_lock);
+	g_cond_signal(&Mwd.refresh_request_cond);    /* Modern GLib: use address of stack-allocated cond */
+	g_mutex_unlock(&Mwd.refresh_request_lock);   /* Modern GLib: use address of stack-allocated mutex */
 }
 
 static void manual_refresh_connections ()
@@ -1233,7 +1233,7 @@ static void load_preferences ()
 	if (config_file != NULL)
 	{
 		char *svalue;
-		int intvalue;
+		int intvalue = -1;  /* Initialize to safe default value */
 		int *columns_order;
 		gsize ncolumns;
 		
@@ -1686,7 +1686,11 @@ static void save_dialog_filter_changed_cb (GObject *object,
 	
 	if (filter != NULL)
 	{
-		char *filePath = gtk_file_chooser_get_filename(save_dialog);
+		/* GTK 4: gtk_file_chooser_get_filename replaced with gtk_file_chooser_get_file */
+		GFile *file = gtk_file_chooser_get_file(save_dialog);
+		char *filePath = file ? g_file_get_path(file) : NULL;
+		if (file)
+			g_object_unref(file);
 		if (filePath != NULL && strlen(filePath) > 0)
 		{
 			char *fileName = g_path_get_basename(filePath);
@@ -1721,24 +1725,74 @@ static void save_dialog_filter_changed_cb (GObject *object,
 
 }
 
+/* GTK 4: Callback data structure for async save dialog */
+typedef struct {
+    gboolean save_asked;
+} SaveDataCallbackData;
+
+/* GTK 4: Async callback for file chooser dialog response */
+static void save_data_dialog_response_cb(GtkDialog *dialog, gint response_id, gpointer user_data)
+{
+    SaveDataCallbackData *callback_data = (SaveDataCallbackData *)user_data;
+    gboolean save_accepted = (response_id == GTK_RESPONSE_ACCEPT);
+    
+    if (save_accepted)
+    {
+        if (Mwd.save_location != NULL)
+            g_free(Mwd.save_location);
+        /* GTK 4: gtk_file_chooser_get_filename replaced with gtk_file_chooser_get_file */
+        GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+        Mwd.save_location = file ? g_file_get_path(file) : NULL;
+        if (file)
+            g_object_unref(file);
+    }
+    
+    gtk_window_destroy(GTK_WINDOW(dialog));
+    
+    if (save_accepted && Mwd.save_location != NULL)
+    {
+        gboolean file_error = FALSE;
+        int file_error_number = 0;
+        
+        file_error = !write_saved_data(Mwd.save_location, callback_data->save_asked, &file_error_number);
+        
+        if (file_error)
+        {
+            GtkWidget *error_dialog;
+            char *save_location_disp = g_filename_display_basename(Mwd.save_location);
+            error_dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                 GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
+                                                 _("Error saving file '%s'. \n%s"),
+                                                 save_location_disp, g_strerror(file_error_number));
+            g_signal_connect(error_dialog, "response", G_CALLBACK(gtk_window_destroy), NULL);
+            gtk_widget_show(error_dialog);
+            g_free(save_location_disp);
+        }
+    }
+    
+    g_free(callback_data);
+    restore_update();
+}
+
 static void save_data (gboolean always_ask_location)
 {
-	gboolean save_accepted = TRUE, save_asked = FALSE;
+	gboolean save_asked = FALSE;
 	
 	disable_update();
 	
 	if (always_ask_location || Mwd.save_location==NULL)
 	{
 		GtkWidget *saveDialog;
+		SaveDataCallbackData *callback_data;
 		
 		save_asked = TRUE;
-		/* GTK 4: Create dialog without buttons, add them separately */
+		/* GTK 4: Create dialog with buttons directly */
 		saveDialog = gtk_file_chooser_dialog_new(_("Save As..."), NULL, GTK_FILE_CHOOSER_ACTION_SAVE,
+												 _("_Cancel"), GTK_RESPONSE_CANCEL,
+												 _("_Save"), GTK_RESPONSE_ACCEPT,
 												 NULL);
-		gtk_dialog_add_button(GTK_DIALOG(saveDialog), _("_Cancel"), GTK_RESPONSE_CANCEL);
-		gtk_dialog_add_button(GTK_DIALOG(saveDialog), _("_Save"), GTK_RESPONSE_ACCEPT);		
-		gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER(saveDialog), TRUE);
-		gtk_window_set_icon_from_file(GTK_WINDOW(saveDialog), UIDIR"netactview-icon.png", NULL);		
+		/* GTK 4: gtk_file_chooser_set_do_overwrite_confirmation removed - now automatic */
+		/* GTK 4: gtk_window_set_icon_from_file removed - icons managed by desktop environment */		
 
 		SaveDialogFilters filters = {};
 		filters.allFiles = gtk_file_filter_new();
@@ -1767,7 +1821,10 @@ static void save_data (gboolean always_ask_location)
 			else
 				gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(saveDialog), filters.allFiles);
 				
-			gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(saveDialog), Mwd.save_location);
+			/* GTK 4: gtk_file_chooser_set_filename replaced with gtk_file_chooser_set_file */
+			GFile *file = g_file_new_for_path(Mwd.save_location);
+			gtk_file_chooser_set_file(GTK_FILE_CHOOSER(saveDialog), file, NULL);
+			g_object_unref(file);
 		}
 		else
 		{
@@ -1775,20 +1832,15 @@ static void save_data (gboolean always_ask_location)
 			gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(saveDialog), _("connections.txt"));
 		}
 		
-		save_accepted = (gtk_dialog_run (GTK_DIALOG(saveDialog)) == GTK_RESPONSE_ACCEPT);
-		
-		if (save_accepted)
-		{
-			if (Mwd.save_location != NULL)
-				g_free(Mwd.save_location);
-			Mwd.save_location = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (saveDialog));
-		}
-		
-		gtk_widget_destroy (saveDialog);
+		/* GTK 4: Use async pattern with response signal */
+		callback_data = g_new0(SaveDataCallbackData, 1);
+		callback_data->save_asked = save_asked;
+		g_signal_connect(saveDialog, "response", G_CALLBACK(save_data_dialog_response_cb), callback_data);
+		gtk_widget_show(saveDialog);
 	}
-	
-	if (save_accepted && Mwd.save_location!=NULL)
+	else
 	{
+		/* Direct save without dialog */
 		gboolean file_error = FALSE;
 		int file_error_number = 0;
 		
@@ -1798,17 +1850,17 @@ static void save_data (gboolean always_ask_location)
 		{
 			GtkWidget *dialog;
 			char *save_location_disp = g_filename_display_basename(Mwd.save_location);
-			dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
+			dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
 											 GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
 											 _("Error saving file '%s'. \n%s"),
 											 save_location_disp, g_strerror(file_error_number));
-			gtk_dialog_run (GTK_DIALOG (dialog));
-			gtk_widget_destroy (dialog);
+			g_signal_connect(dialog, "response", G_CALLBACK(gtk_window_destroy), NULL);
+			gtk_widget_show(dialog);
 			g_free(save_location_disp);
 		}
+		
+		restore_update();
 	}
-	
-	restore_update();
 }
 
 static int selected_items_number ()
@@ -1840,23 +1892,29 @@ static void destroy (GtkWidget *widget,
 	nactv_exit_application(widget);
 }
 
-static void on_menuAbout_activate (GtkWidget *menuitem, gpointer user_data)
+/* GTK 4: Helper callback to hide dialog on response */
+static void hide_dialog_on_response(GtkDialog *dialog, gint response_id, gpointer user_data)
+{
+	gtk_widget_set_visible(GTK_WIDGET(dialog), FALSE);
+}
+
+G_MODULE_EXPORT void on_menuAbout_activate (GtkWidget *menuitem, gpointer user_data)
 {
 	GtkWidget *aboutdialog;
 	aboutdialog = GTK_WIDGET(gtk_builder_get_object(Builder, "aboutdialog"));
 	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(aboutdialog), VERSION);
-	gtk_about_dialog_set_name(GTK_ABOUT_DIALOG(aboutdialog), 
+	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(aboutdialog), 
 							  Q_("about.program_name|Net Activity Viewer"));
-	gtk_dialog_run(GTK_DIALOG(aboutdialog));
-	gtk_widget_hide(aboutdialog);
+	g_signal_connect(aboutdialog, "response", G_CALLBACK(hide_dialog_on_response), NULL);
+	gtk_widget_show(aboutdialog);
 }
 
-static void on_aboutdialog_close (GtkDialog *dialog, gpointer user_data)
+G_MODULE_EXPORT void on_aboutdialog_close (GtkDialog *dialog, gpointer user_data)
 {
 	gtk_dialog_response(dialog, GTK_RESPONSE_OK);
 }
 
-static void on_menuWiki_activate (GtkWidget *menuitem, gpointer user_data)
+G_MODULE_EXPORT void on_menuWiki_activate (GtkWidget *menuitem, gpointer user_data)
 {
 	const char *wikiURL = "http://netactview.sourceforge.net/wiki/";
 	GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(Builder, "window"));
@@ -1877,38 +1935,38 @@ static void on_menuWiki_activate (GtkWidget *menuitem, gpointer user_data)
 	#endif
 }
 
-static void on_tbtnSave_clicked (GtkWidget *button, gpointer userdata)
+G_MODULE_EXPORT void on_tbtnSave_clicked (GtkWidget *button, gpointer userdata)
 {
 	save_data(FALSE);
 }
 
-static void on_tbtnCopy_clicked (GtkWidget *button, gpointer userdata)
+G_MODULE_EXPORT void on_tbtnCopy_clicked (GtkWidget *button, gpointer userdata)
 {
 	copy_selected_lines();
 }
 
-static void on_tbtnRefresh_clicked (GtkWidget *button, gpointer userdata)
+G_MODULE_EXPORT void on_tbtnRefresh_clicked (GtkWidget *button, gpointer userdata)
 {
 	manual_refresh_connections();
 }
 
-static void on_menuSave_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuSave_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	save_data(FALSE);
 }
 
-static void on_menuSaveAs_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuSaveAs_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	save_data(TRUE);
 }
 
-static void on_menuQuit_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuQuit_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(Builder, "window"));
-	gtk_widget_destroy(window);
+	gtk_window_destroy(GTK_WINDOW(window));
 }
 
-static void on_menuAdminMode_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuAdminMode_activate (GtkWidget *menuItem, gpointer userdata)
 {
 #ifdef HAVE_GKSU
 	GtkWidget *window = gtk_builder_get_object(Builder, "window");
@@ -1925,18 +1983,18 @@ static void on_menuAdminMode_activate (GtkWidget *menuItem, gpointer userdata)
 										 GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
 										 _("Restart as root failed. You may need to install gksu.")
 										 );
-		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy (dialog);
+		g_signal_connect(dialog, "response", G_CALLBACK(gtk_window_destroy), NULL);
+		gtk_widget_show (dialog);
 		
 	}else /*close current instance*/
 	{
 		Mwd.restart_requested = TRUE;
-		gtk_widget_destroy(window);
+		gtk_window_destroy(GTK_WINDOW(window));
 	}
 #endif
 }
 
-static void on_menuEdit_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuEdit_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	gboolean item_selected = (selected_items_number() > 0);
 	
@@ -1945,7 +2003,7 @@ static void on_menuEdit_activate (GtkWidget *menuItem, gpointer userdata)
 	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "menuCopyHost")), item_selected);
 }
 
-static void on_menuCopyColumn_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuCopyColumn_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	if (Mwd.last_popup_column == NULL)
 		return;
@@ -1953,17 +2011,17 @@ static void on_menuCopyColumn_activate (GtkWidget *menuItem, gpointer userdata)
 	copy_selected_lines_column(columnindex);
 }
 
-static void on_menuCopy_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuCopy_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	copy_selected_lines();
 }
 
-static void on_menuCopyAddress_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuCopyAddress_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	copy_selected_lines_column(MVC_REMOTEADDRESS);
 }
 
-static void on_menuCopyHost_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuCopyHost_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	copy_selected_lines_column(MVC_REMOTEHOST);
 }
@@ -2049,22 +2107,22 @@ static void AddColumnToFilter(gboolean negate)
 	}
 }
 
-static void on_menuFilterIn_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuFilterIn_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	AddColumnToFilter(FALSE);
 }
 
-static void on_menuFilterOut_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuFilterOut_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	AddColumnToFilter(TRUE);	
 }
 
-static void on_menuRefresh_activate (GtkWidget *menuItem, gpointer userdata)
+G_MODULE_EXPORT void on_menuRefresh_activate (GtkWidget *menuItem, gpointer userdata)
 {
 	manual_refresh_connections();
 }
 
-static void on_menuAutoRefreshEnabled_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuAutoRefreshEnabled_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	GtkToggleButton *toggle_button;
 	toggle_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(Builder, "tbtnAutoRefresh"));
@@ -2072,7 +2130,7 @@ static void on_menuAutoRefreshEnabled_toggled (GtkCheckButton *checkmenuitem, gp
 	set_auto_refresh(gtk_check_button_get_active(checkmenuitem));
 }
 
-static void on_tbtnAutoRefresh_clicked (GtkWidget *toolbutton,
+G_MODULE_EXPORT void on_tbtnAutoRefresh_clicked (GtkWidget *toolbutton,
 										gpointer user_data)
 {
 	GtkCheckButton *menuItem;
@@ -2081,7 +2139,7 @@ static void on_tbtnAutoRefresh_clicked (GtkWidget *toolbutton,
 	gtk_check_button_set_active(menuItem, gtk_toggle_button_get_active(toggle_button));
 }
 
-static void on_tbtnEstConnections_clicked (GtkWidget *toolbutton, gpointer user_data)
+G_MODULE_EXPORT void on_tbtnEstConnections_clicked (GtkWidget *toolbutton, gpointer user_data)
 {
 	GtkCheckButton *menuItem;
 	GtkToggleButton *toggle_button = GTK_TOGGLE_BUTTON(toolbutton);
@@ -2089,49 +2147,49 @@ static void on_tbtnEstConnections_clicked (GtkWidget *toolbutton, gpointer user_
 	gtk_check_button_set_active(menuItem, !gtk_toggle_button_get_active(toggle_button));
 }
 
-static void on_menuAutoRefresh4_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuAutoRefresh4_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
 {
 	if (gtk_check_button_get_active(radiomenuitem))
 	{
-		n_strlcpy(Mwd.sel_arinterval_menu, glade_get_widget_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
+		n_strlcpy(Mwd.sel_arinterval_menu, gtk_widget_get_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
 		set_auto_refresh_interval(4000);
 	}
 }
 
-static void on_menuAutoRefresh1_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuAutoRefresh1_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
 {
 	if (gtk_check_button_get_active(radiomenuitem))
 	{
-		n_strlcpy(Mwd.sel_arinterval_menu, glade_get_widget_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
+		n_strlcpy(Mwd.sel_arinterval_menu, gtk_widget_get_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
 		set_auto_refresh_interval(1000);
 	}
 }
 
-static void on_menuAutoRefresh0_25_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuAutoRefresh0_25_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
 {
 	if (gtk_check_button_get_active(radiomenuitem))
 	{
-		n_strlcpy(Mwd.sel_arinterval_menu, glade_get_widget_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
+		n_strlcpy(Mwd.sel_arinterval_menu, gtk_widget_get_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
 		set_auto_refresh_interval(250);
 	}
 }
 
-static void on_menuAutoRefresh0_064_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuAutoRefresh0_064_toggled (GtkCheckButton *radiomenuitem, gpointer userdata)
 {
 	if (gtk_check_button_get_active(radiomenuitem))
 	{
-		n_strlcpy(Mwd.sel_arinterval_menu, glade_get_widget_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
+		n_strlcpy(Mwd.sel_arinterval_menu, gtk_widget_get_name(GTK_WIDGET(radiomenuitem)), sizeof(Mwd.sel_arinterval_menu));
 		set_auto_refresh_interval(64);
 	}
 }
 
-static void menuView_activate (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void menuView_activate (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(Builder, "menuViewDeletedConn")), 
 							 Mwd.view_unestablished_connections);
 }
 
-static void on_menuViewHostName_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewHostName_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	Mwd.view_remote_host = gtk_check_button_get_active(checkmenuitem);
 	gtk_tree_view_column_set_visible(Mwd.main_view_columns[MVC_REMOTEHOST], gtk_check_button_get_active(checkmenuitem));
@@ -2139,7 +2197,7 @@ static void on_menuViewHostName_toggled (GtkCheckButton *checkmenuitem, gpointer
 	update_connections_visibility();
 }
 
-static void on_menuViewLocalHostName_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewLocalHostName_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	Mwd.view_local_host = gtk_check_button_get_active(checkmenuitem);
 	gtk_tree_view_column_set_visible(Mwd.main_view_columns[MVC_LOCALHOST], Mwd.view_local_host);
@@ -2147,35 +2205,35 @@ static void on_menuViewLocalHostName_toggled (GtkCheckButton *checkmenuitem, gpo
 	update_connections_visibility();
 }
 
-static void on_menuViewLocalAddress_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewLocalAddress_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	Mwd.view_local_address = gtk_check_button_get_active(checkmenuitem);
 	gtk_tree_view_column_set_visible(Mwd.main_view_columns[MVC_LOCALADDRESS], Mwd.view_local_address);
 	update_connections_visibility();
 }
 
-static void on_menuViewCommand_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewCommand_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	Mwd.view_command = gtk_check_button_get_active(checkmenuitem);
 	gtk_tree_view_column_set_visible(Mwd.main_view_columns[MVC_PROGRAMCOMMAND], Mwd.view_command);
 	update_connections_visibility();
 }
 
-static void on_menuViewPortName_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewPortName_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	Mwd.view_port_names = gtk_check_button_get_active(checkmenuitem);
 	update_ports_text();
 	update_connections_visibility();
 }
 
-static void on_menuViewDeletedConn_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewDeletedConn_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	Mwd.show_closed_connections = gtk_check_button_get_active(checkmenuitem);
 	if (!Mwd.show_closed_connections)
 		delete_closed_connections();
 }
 
-static void on_menuViewUnestablishedConn_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewUnestablishedConn_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	GtkToggleButton *toggle_button;
 	toggle_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(Builder, "tbtnEstConnections"));
@@ -2188,7 +2246,7 @@ static void on_menuViewUnestablishedConn_toggled (GtkCheckButton *checkmenuitem,
 	refresh_visible_conn_label();
 }
 
-static void on_menuViewColors_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuViewColors_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	Mwd.view_colors = gtk_check_button_get_active(checkmenuitem);
 	if (!Mwd.view_colors)
@@ -2237,7 +2295,7 @@ static void show_popup_menu (int button, gboolean selecting, GtkTreeViewColumn *
 	}
 }
 
-static gboolean on_mainView_popup_menu (GtkWidget *widget, gpointer user_data)
+G_MODULE_EXPORT gboolean on_mainView_popup_menu (GtkWidget *widget, gpointer user_data)
 {
 	show_popup_menu(0, FALSE, NULL);
 	return TRUE;
@@ -2358,13 +2416,13 @@ static gint tree_sort_compare (GtkTreeModel *model,
 	return sort_result;
 }
 
-static void on_tree_column_clicked (GtkTreeViewColumn *treeviewcolumn, gpointer user_data)
+G_MODULE_EXPORT void on_tree_column_clicked (GtkTreeViewColumn *treeviewcolumn, gpointer user_data)
 {
 	int columnindex = (int)(long)user_data;
 	set_sort_column(columnindex, FALSE);
 }
 
-static void on_btnCloseFilter_clicked (GtkButton *button)
+G_MODULE_EXPORT void on_btnCloseFilter_clicked (GtkButton *button)
 {
 	GtkCheckButton *menuFilter;
 	menuFilter = GTK_CHECK_BUTTON(gtk_builder_get_object(Builder, "menuFilter"));
@@ -2372,24 +2430,24 @@ static void on_btnCloseFilter_clicked (GtkButton *button)
 	gtk_check_button_set_active(menuFilter, FALSE);
 }
 
-static void on_btnClearFilter_clicked (GtkButton *button)
+G_MODULE_EXPORT void on_btnClearFilter_clicked (GtkButton *button)
 {
 	clear_filter();
 }
 
-static void on_btnCaseSensitive_toggled (GtkToggleButton *button, gpointer user_data)
+G_MODULE_EXPORT void on_btnCaseSensitive_toggled (GtkToggleButton *button, gpointer user_data)
 {
 	Mwd.caseSensitiveFilter = gtk_toggle_button_get_active(button);
 	update_filter();
 }
 
-static void on_btnOperators_toggled (GtkToggleButton *button, gpointer user_data)
+G_MODULE_EXPORT void on_btnOperators_toggled (GtkToggleButton *button, gpointer user_data)
 {
 	Mwd.filterOperators = gtk_toggle_button_get_active(button);
 	update_filter();
 }
 
-static void on_filter_changed (GtkEditable *editable, gpointer user_data)
+G_MODULE_EXPORT void on_filter_changed (GtkEditable *editable, gpointer user_data)
 {
 	static gboolean inside_filter_changed = FALSE;
 	if (inside_filter_changed)
@@ -2398,7 +2456,7 @@ static void on_filter_changed (GtkEditable *editable, gpointer user_data)
 	
 	GtkEntry *filter_entry;
 	filter_entry = GTK_ENTRY(gtk_builder_get_object(Builder, "txtFilter"));	
-	g_string_assign(Mwd.filter, gtk_entry_get_text(filter_entry));	
+	g_string_assign(Mwd.filter, gtk_editable_get_text(GTK_EDITABLE(filter_entry)));	
 
 	if (strchr(Mwd.filter->str, '\n') != NULL)
 	{
@@ -2417,7 +2475,7 @@ static void on_filter_changed (GtkEditable *editable, gpointer user_data)
 	inside_filter_changed = FALSE;
 }
 
-static void on_menuFilter_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
+G_MODULE_EXPORT void on_menuFilter_toggled (GtkCheckButton *checkmenuitem, gpointer userdata)
 {
 	GtkWidget *filterHBox;
 	filterHBox = GTK_WIDGET(gtk_builder_get_object(Builder, "hboxFilter"));
