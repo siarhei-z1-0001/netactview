@@ -4,6 +4,6 @@
 
 src/main.c
 src/mainwindow.c
-src/netactview.glade
+src/netactview.ui
 data/netactview.desktop.in
 src/utils.c
