@@ -39,9 +39,9 @@ GtkBuilder *Builder = NULL;
 /* GTK 4 uses "activate-link" signal on GtkAboutDialog for URL handling.
  * This handler will be connected in mainwindow.c when the about dialog is created.
  */
-static gboolean on_about_dialog_activate_link(GtkAboutDialog *about, 
-                                               const gchar *uri, 
-                                               gpointer user_data)
+gboolean on_about_dialog_activate_link(GtkAboutDialog *about, 
+                                        const gchar *uri, 
+                                        gpointer user_data)
 {
 	GtkUriLauncher *launcher;
 	

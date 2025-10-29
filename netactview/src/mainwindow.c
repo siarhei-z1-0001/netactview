@@ -1906,6 +1906,8 @@ G_MODULE_EXPORT void on_menuAbout_activate (GtkWidget *menuitem, gpointer user_d
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(aboutdialog), 
 							  Q_("about.program_name|Net Activity Viewer"));
 	g_signal_connect(aboutdialog, "response", G_CALLBACK(hide_dialog_on_response), NULL);
+	/* GTK 4: Connect activate-link signal for URL handling (replaces gtk_about_dialog_set_url_hook) */
+	g_signal_connect(aboutdialog, "activate-link", G_CALLBACK(on_about_dialog_activate_link), NULL);
 	gtk_widget_show(aboutdialog);
 }
 

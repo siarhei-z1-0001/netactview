@@ -162,7 +162,12 @@ static void get_connections_from_kernel(int protocol, GArray *connections, GHash
 	f = fopen(protocol_file[protocol], "r");
 	if (f != NULL)
 	{
-		fgets(buffer, sizeof(buffer), f); /*skip the first line*/
+		/* Skip the first line (header) - check return to satisfy warn_unused_result */
+		if (fgets(buffer, sizeof(buffer), f) == NULL) {
+			/* Empty file or read error - close and return empty array */
+			fclose(f);
+			return;
+		}
 		while (fgets(buffer, sizeof(buffer), f) != NULL)
 		{
 			NetConnection net_line = {};
