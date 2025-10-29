@@ -77,7 +77,7 @@ static void on_activate(GtkApplication *app, gpointer user_data)
 	/* Create and show main window */
 	window = main_window_create();
 	gtk_application_add_window(app, GTK_WINDOW(window));
-	gtk_widget_show(window);
+	gtk_window_present(GTK_WINDOW(window));
 }
 
 /* GTK 4 application shutdown callback - handles cleanup */

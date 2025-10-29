@@ -100,7 +100,7 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(gladedir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(uidir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_netactview_OBJECTS = main.$(OBJEXT) mainwindow.$(OBJEXT) \
 	net.$(OBJEXT) process.$(OBJEXT) utils.$(OBJEXT) \
@@ -186,7 +186,7 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-DATA = $(glade_DATA)
+DATA = $(ui_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -367,9 +367,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-glade_images = netactview-icon.png auto-refresh-icon.png
-gladedir = $(datadir)/netactview/glade
-glade_DATA = $(glade_images) netactview.glade
+ui_images = netactview-icon.png auto-refresh-icon.png
+uidir = $(datadir)/netactview
+ui_DATA = $(ui_images) netactview.ui
 INCLUDES = \
 	-DPREFIX=\""$(prefix)"\" \
 	-DBINDIR=\""$(bindir)"\" \
@@ -401,7 +401,7 @@ netactview_SOURCES = \
 
 netactview_LDFLAGS = 
 netactview_LDADD = $(NETACTVIEW_LIBS)
-EXTRA_DIST = $(glade_DATA)
+EXTRA_DIST = $(ui_DATA)
 all: all-am
 
 .SUFFIXES:
@@ -534,27 +534,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-gladeDATA: $(glade_DATA)
+install-uiDATA: $(ui_DATA)
 	@$(NORMAL_INSTALL)
-	@list='$(glade_DATA)'; test -n "$(gladedir)" || list=; \
+	@list='$(ui_DATA)'; test -n "$(uidir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(gladedir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(gladedir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(uidir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(uidir)" || exit 1; \
 	fi; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  echo "$$d$$p"; \
 	done | $(am__base_list) | \
 	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(gladedir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(gladedir)" || exit $$?; \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(uidir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(uidir)" || exit $$?; \
 	done
 
-uninstall-gladeDATA:
+uninstall-uiDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(glade_DATA)'; test -n "$(gladedir)" || list=; \
+	@list='$(ui_DATA)'; test -n "$(uidir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(gladedir)'; $(am__uninstall_files_from_dir)
+	dir='$(DESTDIR)$(uidir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -644,7 +644,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(gladedir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(uidir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -704,7 +704,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-gladeDATA
+install-data-am: install-uiDATA
 
 install-dvi: install-dvi-am
 
@@ -755,7 +755,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-gladeDATA
+uninstall-am: uninstall-binPROGRAMS uninstall-uiDATA
 
 .MAKE: install-am install-strip
 
@@ -765,14 +765,14 @@ uninstall-am: uninstall-binPROGRAMS uninstall-gladeDATA
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-binPROGRAMS \
 	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-gladeDATA install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	install-uiDATA installcheck installcheck-am installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-gladeDATA
+	uninstall-binPROGRAMS uninstall-uiDATA
 
 .PRECIOUS: Makefile
 

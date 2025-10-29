@@ -298,13 +298,13 @@ char* get_effective_home_dir ()
 
 void set_clipboard_text (const char *text)
 {
-	GdkAtom atom;
-	GtkClipboard *clipboard;
+	GdkClipboard *clipboard;
 	
-	atom = gdk_atom_intern("CLIPBOARD", FALSE);
-	clipboard = gtk_clipboard_get(atom);
+	// GTK 4: Use GdkClipboard from display
+	GdkDisplay *display = gdk_display_get_default();
+	clipboard = gdk_display_get_clipboard(display);
 	
-	gtk_clipboard_set_text(clipboard, text, -1);
+	gdk_clipboard_set_text(clipboard, text);
 }
 
 void EnsureStringLen (char **str, int *maxSize, int len)

@@ -22,15 +22,15 @@
 #include "nactv-debug.h"
 
 #ifdef NACTV_LOCAL_BUILD
-#define GLADEDIR "src/"
+#define UIDIR "src/"
 #define EXECUTABLE_PATH "src/netactview"
 
 #else /*ndef NACTV_LOCAL_BUILD*/
 
-#define GLADEDIR DATADIR"/netactview/glade/"
+#define UIDIR DATADIR"/netactview/"
 #define EXECUTABLE_PATH BINDIR"/netactview"
 #endif
 
-#define GLADEFILE GLADEDIR"netactview.glade"
+#define UIFILE UIDIR"netactview.ui"
 
 #endif /*NACTV_DEFINITIONS_H*/
