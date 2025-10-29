@@ -90,17 +90,16 @@ unsigned int get_running_processes (Process **processes)
 	procdir = opendir("/proc");
 	if (procdir != NULL)
 	{
-		struct dirent dentry, *pdentry;
+		struct dirent *pdentry;  /* Modern: readdir() returns pointer, no local buffer needed */
 		GArray *aprocesses;
 		
 		aprocesses = g_array_sized_new(FALSE, TRUE, sizeof(Process), 128);
 		
-		while ( readdir_r(procdir, &dentry, &pdentry) == 0 )
+		/* Modern POSIX: readdir() is thread-safe, no need for readdir_r */
+		while ( (pdentry = readdir(procdir)) != NULL )
 		{
 			Process process = {};
 			
-			if (pdentry == NULL)
-				break;
 			if (pdentry->d_type != DT_DIR)
 				continue;
 			if (!is_simple_number(pdentry->d_name))
@@ -151,7 +150,7 @@ void update_process_info (Process *process)
 }
 
 
-static const size_t MaxSocketNameSize = 64;  /* max_size = max_len + 1 */
+/* MaxSocketNameSize removed - was unused */
 static const char ProcSocketFormat1[] = "socket:[";
 static const size_t ProcSocketFormat1Len = sizeof(ProcSocketFormat1)-1;
 static const char ProcSocketFormat2[] = "[0000]:";
@@ -229,17 +228,16 @@ unsigned int process_get_socket_inodes (long pid, unsigned long **inodes)
 	fddir = opendir (sfddir);
 	if (fddir != NULL)
 	{
-		struct dirent *fdentry, dentry;
+		struct dirent *fdentry;  /* Modern: readdir() returns pointer, no local buffer needed */
 		GArray *ainodes;
 		
 		ainodes = g_array_new(FALSE, TRUE, sizeof(unsigned long));
 		
-		while ( readdir_r (fddir, &dentry, &fdentry) == 0 )
+		/* Modern POSIX: readdir() is thread-safe, no need for readdir_r */
+		while ( (fdentry = readdir(fddir)) != NULL )
 		{
 			char *file_name, *link_path;
 			
-			if (fdentry==NULL)
-				break;
 			if (fdentry->d_type != DT_LNK)
 				continue;
 			link_path = g_build_path("/", sfddir, fdentry->d_name, NULL);

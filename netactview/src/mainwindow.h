@@ -23,4 +23,9 @@
 GtkWidget* main_window_create (void);
 void main_window_data_cleanup (void);
 
+/* GTK 4 URL handler for about dialog - defined in main.c */
+gboolean on_about_dialog_activate_link(GtkAboutDialog *about, 
+                                        const gchar *uri, 
+                                        gpointer user_data);
+
 #endif /*NACTV_MAINWINDOW_H*/

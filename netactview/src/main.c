@@ -25,86 +25,101 @@
 #include "config.h"
 
 #include <gtk/gtk.h>
-#include <glade/glade.h>
+#include <gio/gio.h>
 #include <glib.h>
-#include <libgnome/libgnome.h>
-#include <libgnomevfs/gnome-vfs.h>
-#include <libgnomevfs/gnome-vfs-utils.h>
 #include <glib/gi18n.h>
 
 #include "mainwindow.h"
 #include "definitions.h"
 #include "net.h"
 
-GladeXML *GladeXml = NULL;
+GtkBuilder *Builder = NULL;
 
 
-static void on_aboutdialog_url_activated (GtkAboutDialog *about, const gchar *url, 
-										 gpointer data)
+/* GTK 4 uses "activate-link" signal on GtkAboutDialog for URL handling.
+ * This handler will be connected in mainwindow.c when the about dialog is created.
+ */
+gboolean on_about_dialog_activate_link(GtkAboutDialog *about, 
+                                        const gchar *uri, 
+                                        gpointer user_data)
 {
-	gnome_vfs_url_show(url);
+	GtkUriLauncher *launcher;
+	
+	/* GtkUriLauncher is the modern GTK 4 way to launch URIs */
+	launcher = gtk_uri_launcher_new(uri);
+	gtk_uri_launcher_launch(launcher, GTK_WINDOW(about), NULL, NULL, NULL);
+	g_object_unref(launcher);
+	
+	return TRUE; /* Signal handled */
 }
 
-static void on_aboutdialog_email_activated (GtkAboutDialog *about, const gchar *url, 
-										 	gpointer data)
+
+/* GTK 4 application activation callback - replaces the main UI setup */
+static void on_activate(GtkApplication *app, gpointer user_data)
 {
-	GString *s = g_string_new("mailto:");
-	g_string_append(s, url);
-	gnome_vfs_url_show(s->str);
-	g_string_free(s, TRUE);
+	GtkWidget *window;
+	GError *error = NULL;
+	
+	/* Load UI with GtkBuilder (replaces libglade) */
+	Builder = gtk_builder_new();
+	if (!gtk_builder_add_from_file(Builder, UIFILE, &error))
+	{
+		g_printerr("Error loading %s: %s\nThe application might not be correctly installed.\n", 
+		           UIFILE, error ? error->message : "Unknown error");
+		if (error)
+			g_error_free(error);
+		return;
+	}
+	
+	/* Initialize network subsystem */
+	nactv_net_init();
+	
+	/* Create and show main window */
+	window = main_window_create();
+	gtk_application_add_window(app, GTK_WINDOW(window));
+	gtk_window_present(GTK_WINDOW(window));
 }
 
+/* GTK 4 application shutdown callback - handles cleanup */
+static void on_shutdown(GtkApplication *app, gpointer user_data)
+{
+	/* Cleanup resources */
+	main_window_data_cleanup();
+	nactv_net_free();
+	
+	if (Builder)
+	{
+		g_object_unref(Builder);
+		Builder = NULL;
+	}
+}
 
 int
 main (int argc, char *argv[])
 {
-	GtkWidget *window;
-	GnomeProgram *program;
-	GOptionContext *option_context;
+	GtkApplication *app;
+	int status;
 	
-	g_type_init();
-	g_thread_init(NULL);
-	
+	/* Internationalization setup - preserved from GTK 2 version */
 #ifdef ENABLE_NLS
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 	textdomain(GETTEXT_PACKAGE);
 #endif
-	gtk_set_locale();
 	
-	option_context = g_option_context_new(_(" - view network connections"));
+	/* Create GtkApplication (replaces gnome_program_init and gtk_init/gtk_main) */
+	app = gtk_application_new("org.netactview.Netactview", 
+	                          G_APPLICATION_DEFAULT_FLAGS);
 	
-	gtk_init(&argc, &argv);
-	program = gnome_program_init(PACKAGE, VERSION, LIBGNOME_MODULE, argc, argv, 
-								 GNOME_PARAM_GOPTION_CONTEXT, option_context,
-								 GNOME_PROGRAM_STANDARD_PROPERTIES,
-								 GNOME_PARAM_NONE);
+	/* Connect application lifecycle signals */
+	g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
+	g_signal_connect(app, "shutdown", G_CALLBACK(on_shutdown), NULL);
 	
-	gnome_vfs_init();
+	/* Run application - handles event loop internally */
+	status = g_application_run(G_APPLICATION(app), argc, argv);
 	
-	gtk_about_dialog_set_url_hook(&on_aboutdialog_url_activated, NULL, NULL);
-	gtk_about_dialog_set_email_hook(&on_aboutdialog_email_activated, NULL, NULL);
+	/* Cleanup application object */
+	g_object_unref(app);
 	
-	GladeXml = glade_xml_new(GLADEFILE, NULL, NULL);
-	if (GladeXml != NULL)
-	{
-		nactv_net_init();
-		
-		window = main_window_create();
-		gtk_widget_show(window);
-		
-		gtk_main();
-		
-		main_window_data_cleanup();
-		nactv_net_free();
-		g_object_unref(GladeXml); GladeXml = NULL;
-	}else
-	{
-		g_printerr("Error loading %s \nThe application might not be correctly installed.\n", 
-				   GLADEFILE);
-	}
-	
-	g_object_unref (program);
-
-	return 0;
+	return status;
 }

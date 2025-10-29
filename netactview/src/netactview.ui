@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GTK 4 GtkBuilder UI Definition for Net Activity Viewer -->
+<!-- Converted from libglade format (netactview.glade) -->
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  
+  <!-- Main Application Window -->
+  <object class="GtkWindow" id="window">
+    <property name="default-width">750</property>
+    <property name="default-height">500</property>
+    <property name="icon-name">netactview-icon</property>
+    <property name="title" translatable="yes">Net Activity Viewer</property>
+    <child>
+      <object class="GtkBox" id="vbox1">
+        <property name="orientation">vertical</property>
+        <child>
+          <!-- Menu Bar -->
+          <object class="GtkMenuBar" id="menubar1">
+            <child>
+              <!-- File Menu -->
+              <object class="GtkMenuItem" id="menuFile">
+                <property name="label" translatable="yes">_File</property>
+                <property name="use-underline">True</property>
+                <child>
+                  <object class="GtkMenu" id="menu1">
+                    <child>
+                      <object class="GtkMenuItem" id="menuSave">
+                        <property name="label" translatable="yes">_Save</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuSave_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuSaveAs">
+                        <property name="label" translatable="yes">Save _As</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuSaveAs_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="separatormenuitem4"/>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuAdminMode">
+                        <property name="label" translatable="yes">Restart As Root</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuAdminMode_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuQuit">
+                        <property name="label" translatable="yes">_Quit</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuQuit_activate"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <!-- View Menu -->
+              <object class="GtkMenuItem" id="menuView">
+                <property name="label" translatable="yes">_View</property>
+                <property name="use-underline">True</property>
+                <signal name="activate" handler="menuView_activate"/>
+                <child>
+                  <object class="GtkMenu" id="menu5">
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewDeletedConn">
+                        <property name="label" translatable="yes">_Closed Connections</property>
+                        <property name="use-underline">True</property>
+                        <property name="active">True</property>
+                        <signal name="toggled" handler="on_menuViewDeletedConn_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewUnestablishedConn">
+                        <property name="label" translatable="yes">Not _Established Connections</property>
+                        <property name="use-underline">True</property>
+                        <property name="active">True</property>
+                        <signal name="toggled" handler="on_menuViewUnestablishedConn_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="separatormenuitem5"/>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewColors">
+                        <property name="label" translatable="yes">Color Highlight</property>
+                        <property name="use-underline">True</property>
+                        <signal name="toggled" handler="on_menuViewColors_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewCommand">
+                        <property name="label" translatable="yes">Command</property>
+                        <property name="use-underline">True</property>
+                        <signal name="toggled" handler="on_menuViewCommand_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewLocalAddress">
+                        <property name="label" translatable="yes">Local Address</property>
+                        <property name="use-underline">True</property>
+                        <signal name="toggled" handler="on_menuViewLocalAddress_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewLocalHostName">
+                        <property name="label" translatable="yes">Local Host Name</property>
+                        <property name="use-underline">True</property>
+                        <signal name="toggled" handler="on_menuViewLocalHostName_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewPortName">
+                        <property name="label" translatable="yes">Port Name</property>
+                        <property name="use-underline">True</property>
+                        <property name="active">True</property>
+                        <signal name="toggled" handler="on_menuViewPortName_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuViewHostName">
+                        <property name="label" translatable="yes">Remote Host Name</property>
+                        <property name="use-underline">True</property>
+                        <property name="active">True</property>
+                        <signal name="toggled" handler="on_menuViewHostName_toggled"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <!-- Help Menu -->
+              <object class="GtkMenuItem" id="menuHelp">
+                <property name="label" translatable="yes">_Help</property>
+                <property name="use-underline">True</property>
+                <child>
+                  <object class="GtkMenu" id="menu3">
+                    <child>
+                      <object class="GtkMenuItem" id="menuWiki">
+                        <property name="label" translatable="yes">Wiki</property>
+                        <property name="tooltip-text">http://netactview.sourceforge.net/wiki/</property>
+                        <signal name="activate" handler="on_menuWiki_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuAbout">
+                        <property name="label" translatable="yes">_About</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuAbout_activate"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <!-- Edit Menu -->
+              <object class="GtkMenuItem" id="menuEdit">
+                <property name="label" translatable="yes">_Edit</property>
+                <property name="use-underline">True</property>
+                <signal name="activate" handler="on_menuEdit_activate"/>
+                <child>
+                  <object class="GtkMenu" id="menu2">
+                    <child>
+                      <object class="GtkMenuItem" id="menuCopy">
+                        <property name="label" translatable="yes">_Copy Line</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuCopy_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuCopyAddress">
+                        <property name="label" translatable="yes">Copy Remote _Address</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuCopyAddress_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuCopyHost">
+                        <property name="label" translatable="yes">Copy Remote _Host</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuCopyHost_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="separatormenuitem1"/>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuFilter">
+                        <property name="label" translatable="yes">_Filter</property>
+                        <property name="use-underline">True</property>
+                        <signal name="toggled" handler="on_menuFilter_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="separatormenuitem2"/>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuRefresh">
+                        <property name="label" translatable="yes">_Refresh</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="on_menuRefresh_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <!-- Auto Refresh Submenu -->
+                      <object class="GtkMenuItem" id="menuAutoRefresh">
+                        <property name="label" translatable="yes">Auto Refresh</property>
+                        <property name="use-underline">True</property>
+                        <child>
+                          <object class="GtkMenu" id="menu4">
+                            <child>
+                              <object class="GtkCheckMenuItem" id="menuAutoRefreshEnabled">
+                                <property name="label" translatable="yes">Enabled</property>
+                                <property name="use-underline">True</property>
+                                <property name="active">True</property>
+                                <signal name="toggled" handler="on_menuAutoRefreshEnabled_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSeparatorMenuItem" id="separatormenuitem3"/>
+                            </child>
+                            <child>
+                              <object class="GtkRadioMenuItem" id="menuAutoRefresh4">
+                                <property name="label" translatable="yes">4 seconds</property>
+                                <property name="use-underline">True</property>
+                                <signal name="toggled" handler="on_menuAutoRefresh4_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkRadioMenuItem" id="menuAutoRefresh1">
+                                <property name="label" translatable="yes">1 second</property>
+                                <property name="use-underline">True</property>
+                                <property name="active">True</property>
+                                <property name="group">menuAutoRefresh4</property>
+                                <signal name="toggled" handler="on_menuAutoRefresh1_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkRadioMenuItem" id="menuAutoRefresh0_25">
+                                <property name="label" translatable="yes">1/4 seconds</property>
+                                <property name="use-underline">True</property>
+                                <property name="group">menuAutoRefresh4</property>
+                                <signal name="toggled" handler="on_menuAutoRefresh0_25_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkRadioMenuItem" id="menuAutoRefresh0_064">
+                                <property name="label" translatable="yes">1/16 seconds</property>
+                                <property name="use-underline">True</property>
+                                <property name="group">menuAutoRefresh4</property>
+                                <signal name="toggled" handler="on_menuAutoRefresh0_064_toggled"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <!-- Toolbar -->
+          <object class="GtkToolbar" id="toolbar1">
+            <child>
+              <object class="GtkToolButton" id="tbtnSave">
+                <property name="label" translatable="yes">Save</property>
+                <property name="icon-name">document-save</property>
+                <property name="is-important">True</property>
+                <signal name="clicked" handler="on_tbtnSave_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="tbtnCopy">
+                <property name="label" translatable="yes">Copy Line</property>
+                <property name="icon-name">edit-copy</property>
+                <property name="is-important">True</property>
+                <signal name="clicked" handler="on_tbtnCopy_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparatorToolItem" id="separatortoolitem1"/>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="tbtnRefresh">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="icon-name">view-refresh</property>
+                <property name="is-important">True</property>
+                <signal name="clicked" handler="on_tbtnRefresh_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToggleToolButton" id="tbtnAutoRefresh">
+                <property name="label" translatable="yes">Auto Refresh</property>
+                <property name="icon-name">auto-refresh-icon</property>
+                <property name="is-important">True</property>
+                <property name="active">True</property>
+                <signal name="clicked" handler="on_tbtnAutoRefresh_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparatorToolItem" id="sepRefFilt"/>
+            </child>
+            <child>
+              <object class="GtkToggleToolButton" id="tbtnEstConnections">
+                <property name="label" translatable="yes">Established</property>
+                <property name="icon-name">network-wired</property>
+                <property name="tooltip-text" translatable="yes">Established connections only</property>
+                <property name="use-underline">True</property>
+                <signal name="clicked" handler="on_tbtnEstConnections_clicked"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <!-- Scrolled Window with TreeView -->
+          <object class="GtkScrolledWindow" id="scrolledwindow1">
+            <property name="hscrollbar-policy">automatic</property>
+            <property name="vscrollbar-policy">automatic</property>
+            <property name="has-frame">True</property>
+            <property name="vexpand">True</property>
+            <child>
+              <object class="GtkTreeView" id="mainView">
+                <property name="can-focus">True</property>
+                <property name="reorderable">True</property>
+                <property name="enable-search">False</property>
+                <signal name="popup-menu" handler="on_mainView_popup_menu"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <!-- Filter Box -->
+          <object class="GtkBox" id="hboxFilter">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">4</property>
+            <child>
+              <object class="GtkLabel" id="labelFilter">
+                <property name="label" translatable="yes">Filter: </property>
+                <property name="single-line-mode">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txtFilter">
+                <property name="can-focus">True</property>
+                <property name="max-length">60000</property>
+                <property name="width-request">250</property>
+                <signal name="changed" handler="on_filter_changed"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btnClearFilter">
+                <property name="label" translatable="no">X</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Clear</property>
+                <signal name="clicked" handler="on_btnClearFilter_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="btnCaseSensitive">
+                <property name="label" translatable="no"> Aa </property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Case sensitive</property>
+                <property name="active">True</property>
+                <signal name="toggled" handler="on_btnCaseSensitive_toggled"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="btnOperators">
+                <property name="label" translatable="no">  !("") </property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Operators:
+ !  - Not
+ ""  - Quote
+ ()  - Group
+ OR  - logical OR
+ Space is logical AND
+ Ex: tcp !80 (firefox OR "wget -t 5")</property>
+                <signal name="toggled" handler="on_btnOperators_toggled"/>
+              </object>
+            </child>
+            <child>
+              <!-- Spacer -->
+              <object class="GtkBox" id="fixed1">
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="lblVisibleConn">
+                <property name="xalign">0</property>
+                <property name="label" translatable="yes">Visible: 0</property>
+                <property name="width-chars">15</property>
+                <property name="single-line-mode">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btnCloseFilter">
+                <property name="can-focus">True</property>
+                <property name="label" translatable="yes">Close</property>
+                <signal name="clicked" handler="on_btnCloseFilter_clicked"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <!-- Separator -->
+          <object class="GtkSeparator" id="hseparator1">
+            <property name="orientation">horizontal</property>
+          </object>
+        </child>
+        <child>
+          <!-- Status Bar -->
+          <object class="GtkStatusbar" id="mainstatusbar"/>
+        </child>
+      </object>
+    </child>
+  </object>
+  
+  <!-- About Dialog -->
+  <object class="GtkAboutDialog" id="aboutdialog">
+    <property name="title" translatable="yes">About Net Activity Viewer</property>
+    <property name="resizable">False</property>
+    <property name="modal">True</property>
+    <property name="destroy-with-parent">True</property>
+    <property name="icon-name">netactview-icon</property>
+    <property name="copyright" translatable="no">© 2007-2015 Mihai Varzaru</property>
+    <property name="comments" translatable="yes">Network connections viewer similar
+ in functionality with netstat.</property>
+    <property name="website">http://netactview.sourceforge.net</property>
+    <property name="license" translatable="yes">This free software is licensed using GNU GPL version 2 or later.
+This licence allows you to run the unmodified program without restrictions.
+Please read its complete terms from the distributed COPYING file or on GNU website:
+http://www.gnu.org/licenses/gpl-2.0.html
+</property>
+    <property name="authors">Mihai Varzaru - &lt;mihaiv@gmail.com&gt;</property>
+    <property name="logo-icon-name">netactview-icon</property>
+    <signal name="close" handler="on_aboutdialog_close"/>
+  </object>
+  
+  <!-- Context Menu (Popup) -->
+  <object class="GtkMenu" id="mainPopup">
+    <child>
+      <object class="GtkMenuItem" id="popupCopyColumn">
+        <property name="label" translatable="yes">Copy by 'Column'</property>
+        <property name="tooltip-text" translatable="yes">Copy selection for current column</property>
+        <signal name="activate" handler="on_menuCopyColumn_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="popupCopyLine">
+        <property name="label" translatable="yes">_Copy Line</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="on_menuCopy_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="popupCopyRemoteAddress">
+        <property name="label" translatable="yes">Copy Remote _Address</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="on_menuCopyAddress_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="popupCopyRemoteHost">
+        <property name="label" translatable="yes">Copy Remote _Host</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="on_menuCopyHost_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem" id="menuiSeparatePopupFilter"/>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="popupFilterIn">
+        <property name="label" translatable="yes">Filter In</property>
+        <property name="tooltip-text" translatable="yes">Filter on selection by column</property>
+        <signal name="activate" handler="on_menuFilterIn_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="popupFilterOut">
+        <property name="label" translatable="yes">Filter Out</property>
+        <property name="tooltip-text" translatable="yes">Filter on Not selection by column</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="on_menuFilterOut_activate"/>
+      </object>
+    </child>
+  </object>
+</interface>

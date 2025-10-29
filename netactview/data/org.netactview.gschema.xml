@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Netactview GSettings Schema
+  
+  This schema defines all application preferences for Netactview, replacing
+  the previous GKeyFile-based configuration system with type-safe GSettings
+  storage as part of the GTK 4 migration.
+  
+  Schema ID: org.netactview.preferences
+  Path: /org/netactview/
+  
+  Preference Categories:
+  - View Options: Control which connection types and data fields are displayed
+  - Window State: Persist window geometry and maximization state
+  - Auto-Refresh: Configure automatic connection list updates
+  - Filter Settings: Control text filtering behavior and pattern matching
+  - Main View: Store tree view sorting and column ordering preferences
+-->
+<schemalist>
+  <schema id="org.netactview.preferences" path="/org/netactview/">
+    
+    <!-- View Preferences: Connection Display Filters -->
+    
+    <key name="view-remote-host" type="b">
+      <default>true</default>
+      <summary>Show remote host connections</summary>
+      <description>
+        Display connections to remote hosts in the connection list. When enabled,
+        network connections to addresses outside the local machine are shown.
+      </description>
+    </key>
+
+    <key name="view-local-host" type="b">
+      <default>false</default>
+      <summary>Show local host connections</summary>
+      <description>
+        Display connections to localhost (127.0.0.1) in the connection list. When
+        disabled, connections to the loopback interface are hidden to reduce clutter.
+      </description>
+    </key>
+
+    <key name="view-local-address" type="b">
+      <default>false</default>
+      <summary>Show local IP addresses</summary>
+      <description>
+        Display local IP addresses in the connection list. When enabled, shows the
+        local network interface address for each connection.
+      </description>
+    </key>
+
+    <key name="view-command" type="b">
+      <default>false</default>
+      <summary>Show process command lines</summary>
+      <description>
+        Display full command line arguments for processes owning connections. When
+        enabled, shows complete command with arguments instead of just program name.
+      </description>
+    </key>
+
+    <key name="view-port-names" type="b">
+      <default>true</default>
+      <summary>Show service names for ports</summary>
+      <description>
+        Display service names (http, ssh, ftp) instead of port numbers when the
+        service is well-known. Uses /etc/services for name resolution.
+      </description>
+    </key>
+
+    <key name="view-unestablished-connections" type="b">
+      <default>true</default>
+      <summary>Show non-established connections</summary>
+      <description>
+        Display connections in states other than ESTABLISHED, including LISTEN,
+        SYN_SENT, SYN_RECV, FIN_WAIT1, FIN_WAIT2, TIME_WAIT, CLOSE, CLOSE_WAIT,
+        LAST_ACK, and CLOSING states.
+      </description>
+    </key>
+
+    <key name="view-closed-connections" type="b">
+      <default>true</default>
+      <summary>Show closed connections</summary>
+      <description>
+        Display recently closed connections with fade-out effect. When enabled,
+        connections that have closed are temporarily shown to track connection
+        lifecycle.
+      </description>
+    </key>
+
+    <key name="view-colors" type="b">
+      <default>false</default>
+      <summary>Enable color-coded connections</summary>
+      <description>
+        Use colors to highlight new and closing connections in the list. New
+        connections are highlighted to draw attention, and closing connections
+        fade to indicate state changes.
+      </description>
+    </key>
+
+    <!-- Window State Preferences: Geometry and Maximization -->
+    
+    <key name="window-width" type="i">
+      <default>750</default>
+      <range min="400" max="5000"/>
+      <summary>Main window width</summary>
+      <description>
+        Width of the main application window in pixels. Valid range is 400 to
+        5000 pixels to ensure usability on various screen sizes.
+      </description>
+    </key>
+
+    <key name="window-height" type="i">
+      <default>500</default>
+      <range min="300" max="5000"/>
+      <summary>Main window height</summary>
+      <description>
+        Height of the main application window in pixels. Valid range is 300 to
+        5000 pixels to ensure usability on various screen sizes.
+      </description>
+    </key>
+
+    <key name="window-maximized" type="b">
+      <default>false</default>
+      <summary>Window maximized state</summary>
+      <description>
+        Whether the main window is maximized to fill the screen. This state is
+        restored when the application is restarted.
+      </description>
+    </key>
+
+    <!-- Auto-Refresh Preferences: Automatic Connection List Updates -->
+    
+    <key name="auto-refresh" type="b">
+      <default>true</default>
+      <summary>Enable automatic refresh</summary>
+      <description>
+        Automatically update the connection list at regular intervals. When
+        enabled, network connections are polled periodically to reflect current
+        system state.
+      </description>
+    </key>
+
+    <key name="auto-refresh-interval" type="i">
+      <default>1000</default>
+      <range min="100" max="60000"/>
+      <summary>Auto-refresh interval in milliseconds</summary>
+      <description>
+        Time between automatic connection list updates in milliseconds. Lower
+        values provide more responsive updates but increase CPU usage. Valid
+        range is 100ms to 60000ms (1 minute).
+      </description>
+    </key>
+
+    <key name="auto-refresh-interval-menu" type="s">
+      <default>'menuAutoRefresh1'</default>
+      <summary>Selected auto-refresh interval menu item</summary>
+      <description>
+        Widget ID of the menu item corresponding to the currently selected
+        refresh interval. Used to restore menu checkmark state. Valid values
+        are menuAutoRefresh1 through menuAutoRefresh7 corresponding to predefined
+        refresh intervals.
+      </description>
+    </key>
+
+    <!-- Filter Preferences: Text Filtering and Pattern Matching -->
+    
+    <key name="filtering" type="b">
+      <default>false</default>
+      <summary>Enable filtering</summary>
+      <description>
+        Apply text filter to connection list. When enabled, only connections
+        matching the filter expression are displayed.
+      </description>
+    </key>
+
+    <key name="filter-case-sensitive" type="b">
+      <default>true</default>
+      <summary>Case-sensitive filtering</summary>
+      <description>
+        Perform case-sensitive pattern matching when filtering connections.
+        When enabled, 'HTTP' and 'http' are treated as different strings.
+      </description>
+    </key>
+
+    <key name="filter-operators" type="b">
+      <default>false</default>
+      <summary>Enable filter operators</summary>
+      <description>
+        Allow AND/OR boolean operators in filter expressions. When enabled,
+        complex filter expressions can be constructed using logical operators
+        with proper precedence rules (AND before OR).
+      </description>
+    </key>
+
+    <key name="filter-text" type="s">
+      <default>''</default>
+      <summary>Filter text</summary>
+      <description>
+        Current filter expression applied to the connection list. When filter
+        operators are enabled, this can contain complex boolean expressions.
+        Otherwise, it performs simple substring matching.
+      </description>
+    </key>
+
+    <!-- Main View Preferences: Tree View Sorting and Column Order -->
+    
+    <key name="sort-column-index" type="i">
+      <default>0</default>
+      <range min="0" max="10"/>
+      <summary>Sort column index</summary>
+      <description>
+        Index of the column used for sorting the connection list. Valid values
+        correspond to column indices: 0=Protocol, 1=Local Host, 2=Local Address,
+        3=Local Port, 4=State, 5=Remote Address, 6=Remote Port, 7=Remote Host,
+        8=PID, 9=Program Name, 10=Program Command.
+      </description>
+    </key>
+
+    <key name="sort-direction" type="i">
+      <default>0</default>
+      <summary>Sort direction</summary>
+      <description>
+        Sort order for the connection list. Valid values are 0 for ascending
+        (GTK_SORT_ASCENDING) and 1 for descending (GTK_SORT_DESCENDING) order.
+      </description>
+    </key>
+
+    <key name="columns-order" type="ai">
+      <default>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]</default>
+      <summary>Column display order</summary>
+      <description>
+        Array defining the visual order of columns in the tree view. Each element
+        is a column index specifying the position of that column in the display.
+        Default order is: Protocol, Local Host, Local Address, Local Port, State,
+        Remote Address, Remote Port, Remote Host, PID, Program Name, Program Command.
+        The array must contain exactly 11 unique values from 0 to 10.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>

@@ -1,3 +1,6 @@
+# GSettings schemas
+gsettings_SCHEMAS = org.netactview.gschema.xml
+@GSETTINGS_RULES@
 
 appicondir = $(datadir)/pixmaps
 appicon_DATA = netactview.png
@@ -13,7 +16,8 @@ man_MANS = netactview.1
 EXTRA_DIST = \
 	$(desktop_in_files) \
 	$(appicon_DATA) \
-	$(man_MANS)
+	$(man_MANS) \
+	$(gsettings_SCHEMAS)
 	
 CLEANFILES = \
 	$(desktop_DATA)
